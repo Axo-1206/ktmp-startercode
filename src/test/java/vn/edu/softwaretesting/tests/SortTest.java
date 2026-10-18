@@ -19,12 +19,22 @@ class SortTest extends WebTestBase {
 
     private InventoryPage inventoryPage;
 
+    /**
+     * Thiết lập tiền điều kiện trước mỗi test case: đăng nhập tài khoản tiêu chuẩn và mở trang danh mục sản phẩm.
+     */
     @BeforeEach
     void loginAndOpenInventory() {
         new LoginPage(driver, baseUrl).open().login("standard_user", "secret_sauce");
         inventoryPage = new InventoryPage(driver);
     }
 
+    /**
+     * Kiểm thử chức năng sắp xếp sản phẩm theo tên (TC-SORT-01 và TC-SORT-02: A-Z và Z-A).
+     *
+     * @param tcId mã định danh test case
+     * @param option giá trị value của tùy chọn sắp xếp ("az" hoặc "za")
+     * @param ascending true nếu sắp xếp tăng dần theo bảng chữ cái, false nếu giảm dần
+     */
     @ParameterizedTest(name = "{0}: sort by Name option={1} (ascending={2})")
     @CsvSource({
             "TC-SORT-01, az, true",
@@ -38,6 +48,13 @@ class SortTest extends WebTestBase {
         assertEquals(expected, actual, tcId + ": Product names are not sorted correctly!");
     }
 
+    /**
+     * Kiểm thử chức năng sắp xếp sản phẩm theo giá (TC-SORT-03 và TC-SORT-04: thấp-cao và cao-thấp).
+     *
+     * @param tcId mã định danh test case
+     * @param option giá trị value của tùy chọn sắp xếp ("lohi" hoặc "hilo")
+     * @param ascending true nếu sắp xếp giá từ thấp đến cao, false nếu từ cao xuống thấp
+     */
     @ParameterizedTest(name = "{0}: sort by Price option={1} (ascending={2})")
     @CsvSource({
             "TC-SORT-03, lohi, true",

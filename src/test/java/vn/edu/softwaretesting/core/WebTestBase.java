@@ -16,6 +16,9 @@ public abstract class WebTestBase {
     protected WebDriver driver;
     protected String baseUrl;
 
+    /**
+     * Khởi tạo WebDriver trước mỗi test case (hỗ trợ Chrome/Firefox, cấu hình headless, timeout và kích thước cửa sổ).
+     */
     @BeforeEach
     void openBrowser() {
         baseUrl = System.getProperty("baseUrl", "https://www.saucedemo.com");
@@ -36,6 +39,9 @@ public abstract class WebTestBase {
                 new org.openqa.selenium.Dimension(1440, 900));
     }
 
+    /**
+     * Đóng trình duyệt và giải phóng tài nguyên WebDriver sau khi hoàn thành mỗi test case.
+     */
     @AfterEach
     void closeBrowser() {
         if (driver != null) {
@@ -43,6 +49,12 @@ public abstract class WebTestBase {
         }
     }
 
+    /**
+     * Thiết lập các tùy chọn khởi chạy cho trình duyệt Chrome.
+     *
+     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa), false nếu có giao diện
+     * @return đối tượng {@link ChromeOptions} đã được cấu hình
+     */
     private ChromeOptions chromeOptions(boolean headless) {
         ChromeOptions options = new ChromeOptions();
         if (headless) {
@@ -52,6 +64,12 @@ public abstract class WebTestBase {
         return options;
     }
 
+    /**
+     * Thiết lập các tùy chọn khởi chạy cho trình duyệt Firefox.
+     *
+     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa), false nếu có giao diện
+     * @return đối tượng {@link FirefoxOptions} đã được cấu hình
+     */
     private FirefoxOptions firefoxOptions(boolean headless) {
         FirefoxOptions options = new FirefoxOptions();
         if (headless) {

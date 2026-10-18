@@ -13,6 +13,10 @@ import vn.edu.softwaretesting.pages.LoginPage;
 @DisplayName("NFR-01: Login Performance")
 class PerformanceTest extends WebTestBase {
 
+    /**
+     * Kiểm thử phi chức năng về hiệu năng đăng nhập (TC-NFR-01 / BUG-01):
+     * Đo thời gian phản hồi khi tài khoản performance_glitch_user đăng nhập và kiểm tra giới hạn 3000 ms.
+     */
     @Test
     @Tag("known-bug")
     @DisplayName("TC-NFR-01 [BUG-01]: inventory loads within 3 s")

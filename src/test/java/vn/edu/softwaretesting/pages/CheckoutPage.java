@@ -27,16 +27,34 @@ public final class CheckoutPage {
     private final WebDriver driver;
     private final WebDriverWait wait;
 
+    /**
+     * Khởi tạo CheckoutPage với WebDriver và cài đặt thời gian chờ tường minh.
+     *
+     * @param driver instance của {@link WebDriver} dùng để điều khiển trình duyệt
+     */
     public CheckoutPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(8));
     }
 
+    /**
+     * Thực hiện thao tác click vào phần tử bằng JavaScript Executor sau khi phần tử xuất hiện trong DOM.
+     *
+     * @param locator định vị của phần tử cần click
+     */
     private void jsClick(By locator) {
         WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
     }
 
+    /**
+     * Điền thông tin cá nhân khách hàng ở bước Checkout đầu tiên (Step One).
+     *
+     * @param first tên của khách hàng (First Name)
+     * @param last họ của khách hàng (Last Name)
+     * @param postal mã bưu chính (Postal/Zip Code)
+     * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
+     */
     public CheckoutPage fillInformation(String first, String last, String postal) {
         WebElement firstInput = wait.until(ExpectedConditions.visibilityOfElementLocated(FIRST_NAME));
         firstInput.clear();
@@ -58,53 +76,108 @@ public final class CheckoutPage {
         return this;
     }
 
+    /**
+     * Nhấn nút Continue và đọc thông báo lỗi xuất hiện khi thiếu dữ liệu hoặc thông tin không hợp lệ.
+     *
+     * @return chuỗi thông báo lỗi hiển thị trên giao diện
+     */
     public String continueExpectingError() {
         jsClick(CONTINUE);
         return wait.until(ExpectedConditions.visibilityOfElementLocated(ERROR)).getText();
     }
 
+    /**
+     * Nhấn nút Continue để chuyển sang trang tóm tắt đơn hàng (Checkout: Overview) và chờ thông tin tổng tiền hiển thị.
+     *
+     * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
+     */
     public CheckoutPage continueToOverview() {
         jsClick(CONTINUE);
         wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL));
         return this;
     }
 
+    /**
+     * Nhấn nút Continue và đọc giá trị tổng tiền (Total) hiển thị ở trang tóm tắt đơn hàng.
+     *
+     * @return chuỗi văn bản thể hiện tổng tiền (bao gồm cả thuế)
+     */
     public String continueToOverviewAndReadTotal() {
         jsClick(CONTINUE);
         return wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL)).getText();
     }
 
+    /**
+     * Đọc giá trị tổng tiền sản phẩm (Item total / subtotal) từ trang tóm tắt đơn hàng.
+     *
+     * @return chuỗi văn bản tiền hàng (ví dụ: "Item total: $29.99")
+     */
     public String readItemTotal() {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(ITEM_TOTAL)).getText();
     }
 
+    /**
+     * Đọc giá trị tiền thuế tính toán được (Tax) từ trang tóm tắt đơn hàng.
+     *
+     * @return chuỗi văn bản tiền thuế (ví dụ: "Tax: $2.40")
+     */
     public String readTax() {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(TAX)).getText();
     }
 
+    /**
+     * Đọc tổng số tiền phải thanh toán (Total = Item total + Tax) từ trang tóm tắt đơn hàng.
+     *
+     * @return chuỗi văn bản tổng tiền (ví dụ: "Total: $32.39")
+     */
     public String readTotal() {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL)).getText();
     }
 
+    /**
+     * Nhấn nút Cancel ở bước Checkout Step One để hủy quá trình thanh toán và quay về giỏ hàng.
+     *
+     * @return đối tượng {@link CartPage} đại diện cho trang giỏ hàng
+     */
     public CartPage cancelAtStepOne() {
         jsClick(CANCEL);
         return new CartPage(driver);
     }
 
+    /**
+     * Nhấn nút Finish để hoàn tất đơn đặt hàng và chờ thông báo hoàn tất hiển thị.
+     *
+     * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
+     */
     public CheckoutPage finishOrder() {
         jsClick(FINISH);
         wait.until(ExpectedConditions.visibilityOfElementLocated(COMPLETE_HEADER));
         return this;
     }
 
+    /**
+     * Đọc tiêu đề thông báo đơn hàng hoàn tất (Complete Header).
+     *
+     * @return chuỗi tiêu đề thông báo (ví dụ: "Thank you for your order!")
+     */
     public String readCompleteHeader() {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(COMPLETE_HEADER)).getText();
     }
 
+    /**
+     * Kiểm tra URL hiện tại có phải là trang hoàn tất đơn hàng (checkout-complete.html) hay không.
+     *
+     * @return true nếu URL chứa "checkout-complete.html", ngược lại false
+     */
     public boolean isOrderCompleteUrl() {
         return driver.getCurrentUrl().contains("checkout-complete.html");
     }
 
+    /**
+     * Lấy số lượng trên badge giỏ hàng sau khi đã hoàn tất đặt hàng (mong đợi là 0 khi giỏ đã reset).
+     *
+     * @return số lượng hiển thị trên badge, hoặc 0 nếu không còn badge
+     */
     public int getBadgeCountAfterFinish() {
         List<WebElement> badges = driver.findElements(CART_BADGE);
         return badges.isEmpty() ? 0 : Integer.parseInt(badges.get(0).getText().trim());

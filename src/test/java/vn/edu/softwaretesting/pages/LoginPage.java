@@ -20,18 +20,36 @@ public final class LoginPage {
     private final WebDriverWait wait;
     private final String baseUrl;
 
+    /**
+     * Khởi tạo LoginPage với WebDriver và đường dẫn URL cơ sở.
+     *
+     * @param driver instance của {@link WebDriver} dùng để điều khiển trình duyệt
+     * @param baseUrl đường dẫn URL gốc của ứng dụng (ví dụ: https://www.saucedemo.com)
+     */
     public LoginPage(WebDriver driver, String baseUrl) {
         this.driver = driver;
         this.baseUrl = baseUrl;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(8));
     }
 
+    /**
+     * Điều hướng trình duyệt tới trang đăng nhập và chờ ô nhập username hiển thị.
+     *
+     * @return đối tượng {@link LoginPage} hiện tại để hỗ trợ method chaining
+     */
     public LoginPage open() {
         driver.get(baseUrl);
         wait.until(ExpectedConditions.visibilityOfElementLocated(USERNAME));
         return this;
     }
 
+    /**
+     * Thực hiện thao tác nhập tài khoản, mật khẩu và nhấn nút đăng nhập.
+     *
+     * @param username tên người dùng
+     * @param password mật khẩu
+     * @return kết quả đăng nhập gói gọn trong đối tượng {@link LoginResult}
+     */
     public LoginResult login(String username, String password) {
         driver.findElement(USERNAME).sendKeys(username);
         driver.findElement(PASSWORD).sendKeys(password);
@@ -53,6 +71,13 @@ public final class LoginPage {
         return new LoginResult(accepted, driver.getCurrentUrl(), message);
     }
 
+    /**
+     * Record lưu trữ kết quả sau khi thực hiện đăng nhập.
+     *
+     * @param accepted true nếu đăng nhập thành công vào được trang inventory, false nếu thất bại
+     * @param currentUrl URL hiện tại sau khi đăng nhập
+     * @param message thông báo thành công hoặc thông báo lỗi thu được
+     */
     public record LoginResult(boolean accepted, String currentUrl,
                               String message) {
     }

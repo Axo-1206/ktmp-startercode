@@ -19,11 +19,22 @@ class LoginTest extends WebTestBase {
 
     private LoginPage loginPage;
 
+    /**
+     * Thiết lập tiền điều kiện trước mỗi test case: khởi tạo và mở trang đăng nhập.
+     */
     @BeforeEach
     void openLoginPage() {
         loginPage = new LoginPage(driver, baseUrl).open();
     }
 
+    /**
+     * Kiểm thử phân lớp tương đương (EP) và bảng quyết định (DT) cho chức năng đăng nhập đọc dữ liệu từ file CSV.
+     *
+     * @param username tên tài khoản đăng nhập
+     * @param password mật khẩu đăng nhập
+     * @param expectedAccepted kết quả đăng nhập mong đợi (true nếu thành công, false nếu thất bại)
+     * @param expectedEvidence chuỗi bằng chứng mong đợi xuất hiện trong URL hoặc thông báo lỗi
+     */
     @ParameterizedTest(name = "TC-LOGIN-{index}: user={0}, accepted={2}")
     @CsvFileSource(resources = "/login-data.csv", numLinesToSkip = 1)
     void loginShouldMatchExpectedOutcome(

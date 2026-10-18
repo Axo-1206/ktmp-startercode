@@ -22,12 +22,21 @@ import vn.edu.softwaretesting.pages.LoginPage;
 @DisplayName("FR-03: Checkout Use Cases, Decision Table & Tax BVA")
 class CheckoutTest extends WebTestBase {
 
+    /**
+     * Phương thức tiện ích đăng nhập standard_user, thêm sản phẩm balo vào giỏ và bắt đầu quy trình checkout.
+     *
+     * @return đối tượng {@link CheckoutPage} ở bước thanh toán Step One
+     */
     private CheckoutPage startCheckoutWithSingleBackpack() {
         new LoginPage(driver, baseUrl).open().login("standard_user", "secret_sauce");
         new InventoryPage(driver).addToCart("sauce-labs-backpack").openCart();
         return new CartPage(driver).checkout();
     }
 
+    /**
+     * Kiểm thử luồng chính thanh toán thành công (TC-CHK-01):
+     * Điền đầy đủ thông tin hợp lệ, kiểm tra tiền hàng, thuế 8%, tổng tiền và hoàn tất đặt hàng.
+     */
     @Test
     @DisplayName("TC-CHK-01: Main flow computes Item total, 8% Tax, Total and completes order")
     void mainFlowShowsCorrectTotalAndFinishes() {
@@ -45,6 +54,15 @@ class CheckoutTest extends WebTestBase {
         assertEquals(0, checkoutPage.getBadgeCountAfterFinish());
     }
 
+    /**
+     * Kiểm thử bảng quyết định (Decision Table) khi thiếu các trường thông tin bắt buộc (TC-CHK-02 đến TC-CHK-04, TC-CHK-DT1, DT2).
+     *
+     * @param id mã định danh test case
+     * @param first tên khách hàng nhập vào (hoặc rỗng)
+     * @param last họ khách hàng nhập vào (hoặc rỗng)
+     * @param postal mã bưu điện nhập vào (hoặc rỗng)
+     * @param expected thông báo lỗi xác thực mong đợi xuất hiện
+     */
     @ParameterizedTest(name = "{0}: first=''{1}'', last=''{2}'', postal=''{3}'' -> {4}")
     @CsvSource({
             "TC-CHK-02, '', Nguyen, 700000, Error: First Name is required",
@@ -63,6 +81,10 @@ class CheckoutTest extends WebTestBase {
         assertTrue(message.contains(expected), () -> id + " expected [" + expected + "] but got: [" + message + "]");
     }
 
+    /**
+     * Kiểm thử use case hủy thanh toán tại bước 1 (TC-CHK-05):
+     * Nhấn Cancel ở bước Step One, kiểm tra hệ thống điều hướng về cart.html và giữ nguyên sản phẩm.
+     */
     @Test
     @DisplayName("TC-CHK-05: Cancel at checkout step one returns to cart.html with item preserved")
     void cancelAtStepOneReturnsToCartWithItem() {
@@ -73,6 +95,11 @@ class CheckoutTest extends WebTestBase {
         assertEquals(1, cartPage.getItemCount());
     }
 
+    /**
+     * Nguồn cung cấp dữ liệu kiểm thử giá trị biên (BVA) cho quy tắc làm tròn thuế 8%.
+     *
+     * @return luồng {@link Stream} chứa các bộ đối số gồm mã TC, danh sách sản phẩm, subtotal, thuế và tổng tiền mong đợi
+     */
     static Stream<Arguments> taxRoundingBvaProvider() {
         return Stream.of(
                 Arguments.of("TC-TAX-B1",
@@ -87,6 +114,15 @@ class CheckoutTest extends WebTestBase {
         );
     }
 
+    /**
+     * Kiểm thử giá trị biên (BVA) làm tròn thuế 8% với các tổ hợp sản phẩm khác nhau (TC-TAX-B1 đến TC-TAX-B3).
+     *
+     * @param tcId mã định danh test case
+     * @param items danh sách các slug sản phẩm cần thêm vào giỏ
+     * @param expectedSubtotal tổng tiền hàng mong đợi
+     * @param expectedTax tiền thuế 8% mong đợi sau khi làm tròn
+     * @param expectedTotal tổng số tiền thanh toán mong đợi
+     */
     @ParameterizedTest(name = "{0}: Verify 8% tax rounding ({3}) and {4}")
     @MethodSource("taxRoundingBvaProvider")
     void testTaxRoundingBoundaries(String tcId, List<String> items,
@@ -105,6 +141,10 @@ class CheckoutTest extends WebTestBase {
         assertEquals(expectedTotal, checkoutPage.readTotal(), tcId + " total mismatch");
     }
 
+    /**
+     * Kiểm thử lỗi hệ thống đã biết BUG-03 với tài khoản problem_user (TC-CHK-BUG03):
+     * problem_user bị lỗi trường Last Name dẫn đến không thể vượt qua bước Checkout Step One.
+     */
     @Test
     @Tag("known-bug")
     @DisplayName("TC-CHK-BUG03 [BUG-03]: problem_user cannot proceed past checkout step one due to Last Name field bug")
