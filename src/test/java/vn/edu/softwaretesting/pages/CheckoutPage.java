@@ -9,9 +9,11 @@ package vn.edu.softwaretesting.pages;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -27,9 +29,13 @@ public final class CheckoutPage {
     private static final By CANCEL = By.id("cancel");
     private static final By FINISH = By.id("finish");
     private static final By ERROR = By.cssSelector("[data-test='error']");
+
+    // Locators cho trang Overview
     private static final By ITEM_TOTAL = By.cssSelector(".summary_subtotal_label");
     private static final By TAX = By.cssSelector(".summary_tax_label");
     private static final By TOTAL = By.cssSelector(".summary_total_label");
+
+    // Locators cho trang Complete
     private static final By COMPLETE_HEADER = By.cssSelector(".complete-header");
     private static final By CART_BADGE = By.cssSelector(".shopping_cart_badge");
 
@@ -61,30 +67,34 @@ public final class CheckoutPage {
      * Điền thông tin cá nhân khách hàng ở bước Checkout đầu tiên (Step One).
      * 
      * Phục vụ các TC: TC-CHK-01, TC-CHK-02, TC-CHK-03, TC-CHK-04, TC-TAX-B1..B3.
-     *
+     * 
      * @param first  tên của khách hàng (First Name)
      * @param last   họ của khách hàng (Last Name)
      * @param postal mã bưu chính (Postal/Zip Code)
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
     public CheckoutPage fillInformation(String first, String last, String postal) {
+        // 1. Điền First Name
         WebElement firstInput = wait.until(ExpectedConditions.visibilityOfElementLocated(FIRST_NAME));
         firstInput.clear();
         if (first != null && !first.isEmpty()) {
             firstInput.sendKeys(first);
         }
 
+        // 2. Điền Last Name
         WebElement lastInput = driver.findElement(LAST_NAME);
         lastInput.clear();
         if (last != null && !last.isEmpty()) {
             lastInput.sendKeys(last);
         }
 
+        // 3. Điền Postal Code
         WebElement postalInput = driver.findElement(POSTAL);
         postalInput.clear();
         if (postal != null && !postal.isEmpty()) {
             postalInput.sendKeys(postal);
         }
+
         return this;
     }
 
@@ -102,16 +112,30 @@ public final class CheckoutPage {
     }
 
     /**
-     * Nhấn nút Continue để chuyển sang trang tóm tắt đơn hàng (Checkout: Overview)
-     * và chờ thông tin tổng tiền hiển thị.
+     * Nhấn nút Continue để chuyển sang trang tóm tắt đơn hàng (Checkout: Overview).
      * 
      * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
+     * 
+     * Hàm này xử lý cả 2 trường hợp:
+     * 1. Chuyển trang thành công -> Chờ Total xuất hiện.
+     * 2. Có lỗi validate hiện ra (dành cho problem_user) -> Ném RuntimeException.
      *
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
     public CheckoutPage continueToOverview() {
         jsClick(CONTINUE);
-        wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL));
+
+        // Chờ trong 3 giây xem có lỗi hiện ra không (dành cho problem_user)
+        try {
+            WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement errorElement = shortWait.until(ExpectedConditions.visibilityOfElementLocated(ERROR));
+            // Nếu có lỗi, ném ngoại lệ để test case biết
+            throw new RuntimeException("Validation Error: " + errorElement.getText());
+        } catch (TimeoutException e) {
+            // Không có lỗi, chờ trang Overview hiển thị (Total)
+            wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL));
+        }
+
         return this;
     }
 
@@ -119,13 +143,38 @@ public final class CheckoutPage {
      * Nhấn nút Continue và đọc giá trị tổng tiền (Total) hiển thị ở trang tóm tắt
      * đơn hàng.
      * 
-     * Phục vụ TC: TC-CHK-BUG03 (dùng cho problem_user).
+     * Phục vụ TC: TC-CHK-BUG03 (dùng cho problem_user để kiểm tra xem có bị lỗi
+     * không).
+     * 
+     * Hàm này sẽ ném RuntimeException nếu có lỗi validate.
      *
      * @return chuỗi văn bản thể hiện tổng tiền (bao gồm cả thuế)
      */
     public String continueToOverviewAndReadTotal() {
         jsClick(CONTINUE);
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL)).getText();
+
+        try {
+            WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            WebElement errorElement = shortWait.until(ExpectedConditions.visibilityOfElementLocated(ERROR));
+            throw new RuntimeException("Validation Error: " + errorElement.getText());
+        } catch (TimeoutException e) {
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL)).getText();
+        }
+    }
+
+    /**
+     * Kiểm tra xem có thông báo lỗi validate nào đang hiển thị trên trang không.
+     * 
+     * Phục vụ TC: TC-CHK-BUG03 (dùng để assert problem_user gặp lỗi).
+     *
+     * @return true nếu có thông báo lỗi, ngược lại false
+     */
+    public boolean isValidationErrorVisible() {
+        try {
+            return !driver.findElements(ERROR).isEmpty();
+        } catch (NoSuchElementException e) {
+            return false;
+        }
     }
 
     /**
