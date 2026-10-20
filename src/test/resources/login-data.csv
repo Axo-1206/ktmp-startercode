@@ -9,3 +9,4 @@ standard_user,wrong_password,false,Username and password do not match
 standard_user,Secret_Sauce,false,Username and password do not match
 "","",false,Username is required
 locked_out_user,wrong_password,false,Username and password do not match
+standard_user,"secret_sauce ",false,Username and password do not match

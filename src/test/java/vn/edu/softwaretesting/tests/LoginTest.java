@@ -1,3 +1,10 @@
+/**
+ * @file LoginTest.java
+ * @brief Chứa các test case kiểm thử chức năng Đăng nhập (FR-01).
+ * Bao gồm kiểm thử phân lớp tương đương (EP) và bảng quyết định (DT).
+ * Dữ liệu được đọc từ file login-data.csv.
+ */
+
 package vn.edu.softwaretesting.tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,41 +24,53 @@ import vn.edu.softwaretesting.pages.LoginPage.LoginResult;
 @DisplayName("FR-LOGIN: Authentication")
 class LoginTest extends WebTestBase {
 
-    private LoginPage loginPage;
+        private LoginPage loginPage;
 
-    /**
-     * Thiết lập tiền điều kiện trước mỗi test case: khởi tạo và mở trang đăng nhập.
-     */
-    @BeforeEach
-    void openLoginPage() {
-        loginPage = new LoginPage(driver, baseUrl).open();
-    }
+        /**
+         * Thiết lập tiền điều kiện trước mỗi test case: khởi tạo và mở trang đăng nhập.
+         */
+        @BeforeEach
+        void openLoginPage() {
+                loginPage = new LoginPage(driver, baseUrl).open();
+        }
 
-    /**
-     * Kiểm thử phân lớp tương đương (EP) và bảng quyết định (DT) cho chức năng đăng nhập đọc dữ liệu từ file CSV.
-     *
-     * @param username tên tài khoản đăng nhập
-     * @param password mật khẩu đăng nhập
-     * @param expectedAccepted kết quả đăng nhập mong đợi (true nếu thành công, false nếu thất bại)
-     * @param expectedEvidence chuỗi bằng chứng mong đợi xuất hiện trong URL hoặc thông báo lỗi
-     */
-    @ParameterizedTest(name = "TC-LOGIN-{index}: user={0}, accepted={2}")
-    @CsvFileSource(resources = "/login-data.csv", numLinesToSkip = 1)
-    void loginShouldMatchExpectedOutcome(
-            String username,
-            String password,
-            boolean expectedAccepted,
-            String expectedEvidence) {
+        /**
+         * TC-LOGIN-EP1..EP8, TC-LOGIN-DT1..DT5.
+         * 
+         * Quy trình:
+         * 1. Đọc dữ liệu (username, password, expectedAccepted, expectedEvidence) từ
+         * file login-data.csv.
+         * 2. Thực hiện đăng nhập bằng LoginPage.
+         * 3. So sánh kết quả thực tế (accepted) với mong đợi.
+         * 4. Kiểm tra bằng chứng (URL hoặc thông báo lỗi) có chứa chuỗi mong đợi không.
+         * 
+         * @param username         Tên đăng nhập
+         * @param password         Mật khẩu
+         * @param expectedAccepted Kết quả mong đợi (true nếu thành công, false nếu thất
+         *                         bại)
+         * @param expectedEvidence Bằng chứng mong đợi (URL hoặc thông báo lỗi)
+         */
+        @ParameterizedTest(name = "TC-LOGIN-{index}: user={0}, accepted={2}")
+        @CsvFileSource(resources = "/login-data.csv", numLinesToSkip = 1)
+        void loginShouldMatchExpectedOutcome(
+                        String username,
+                        String password,
+                        boolean expectedAccepted,
+                        String expectedEvidence) {
 
-        LoginResult actual = loginPage.login(username, password);
+                // Bước 1: Thực hiện đăng nhập
+                LoginResult actual = loginPage.login(username, password);
 
-        assertEquals(expectedAccepted, actual.accepted(),
-                () -> "Unexpected result for user: " + username);
-        assertTrue(
-                actual.currentUrl().contains(expectedEvidence)
-                        || actual.message().contains(expectedEvidence),
-                () -> "Expected evidence '" + expectedEvidence
-                        + "', but URL/message was: "
-                        + actual.currentUrl() + " / " + actual.message());
-    }
+                // Bước 2: Kiểm tra kết quả (Accepted)
+                assertEquals(expectedAccepted, actual.accepted(),
+                                () -> "Unexpected result for user: " + username);
+
+                // Bước 3: Kiểm tra bằng chứng (URL hoặc thông báo lỗi)
+                assertTrue(
+                                actual.currentUrl().contains(expectedEvidence)
+                                                || actual.message().contains(expectedEvidence),
+                                () -> "Expected evidence '" + expectedEvidence
+                                                + "', but URL/message was: "
+                                                + actual.currentUrl() + " / " + actual.message());
+        }
 }

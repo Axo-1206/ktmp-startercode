@@ -1,3 +1,10 @@
+/**
+ * @file WebTestBase.java
+ * @brief Lớp cơ sở (Base Class) cho tất cả các bài test Selenium.
+ * Chịu trách nhiệm khởi tạo và giải phóng WebDriver trước/sau mỗi test case.
+ * Hỗ trợ chạy đa trình duyệt (Chrome/Firefox) và chế độ headless thông qua system properties.
+ */
+
 package vn.edu.softwaretesting.core;
 
 import java.time.Duration;
@@ -17,16 +24,29 @@ public abstract class WebTestBase {
     protected String baseUrl;
 
     /**
-     * Khởi tạo WebDriver trước mỗi test case (hỗ trợ Chrome/Firefox, cấu hình headless, timeout và kích thước cửa sổ).
+     * Khởi tạo WebDriver trước mỗi test case.
+     * 
+     * Quy trình:
+     * 1. Đọc cấu hình từ System Properties (baseUrl, browser, headless) do Maven
+     * Surefire truyền vào.
+     * 2. Khởi tạo trình duyệt tương ứng (Chrome hoặc Firefox).
+     * 3. Cấu hình thời gian chờ load trang tối đa (pageLoadTimeout) là 20 giây.
+     * 4. Thiết lập kích thước cửa sổ trình duyệt cố định (1440x900) để đảm bảo giao
+     * diện hiển thị nhất quán.
+     * 
+     * @see pom.xml (phần <systemPropertyVariables>)
      */
     @BeforeEach
     void openBrowser() {
+        // Đọc cấu hình từ Maven (mặc định: baseUrl=https://www.saucedemo.com,
+        // browser=chrome, headless=true)
         baseUrl = System.getProperty("baseUrl", "https://www.saucedemo.com");
         String browser = System.getProperty("browser", "chrome")
                 .toLowerCase(Locale.ROOT);
         boolean headless = Boolean.parseBoolean(
                 System.getProperty("headless", "true"));
 
+        // Khởi tạo WebDriver dựa trên cấu hình browser
         driver = switch (browser) {
             case "chrome" -> new ChromeDriver(chromeOptions(headless));
             case "firefox" -> new FirefoxDriver(firefoxOptions(headless));
@@ -34,13 +54,23 @@ public abstract class WebTestBase {
                     "Unsupported browser: " + browser);
         };
 
+        // Cấu hình timeout và kích thước cửa sổ
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(20));
         driver.manage().window().setSize(
                 new org.openqa.selenium.Dimension(1440, 900));
     }
 
     /**
-     * Đóng trình duyệt và giải phóng tài nguyên WebDriver sau khi hoàn thành mỗi test case.
+     * Đóng trình duyệt và giải phóng tài nguyên WebDriver sau khi hoàn thành mỗi
+     * test case.
+     * 
+     * Quy trình:
+     * 1. Kiểm tra xem driver có null hay không (tránh NullPointerException).
+     * 2. Gọi driver.quit() để đóng tất cả các cửa sổ và kết thúc tiến trình trình
+     * duyệt.
+     * 
+     * Việc này đảm bảo mỗi test case chạy trên một phiên trình duyệt sạch, không bị
+     * ảnh hưởng bởi test trước đó.
      */
     @AfterEach
     void closeBrowser() {
@@ -52,7 +82,8 @@ public abstract class WebTestBase {
     /**
      * Thiết lập các tùy chọn khởi chạy cho trình duyệt Chrome.
      *
-     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa), false nếu có giao diện
+     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa),
+     *                 false nếu có giao diện
      * @return đối tượng {@link ChromeOptions} đã được cấu hình
      */
     private ChromeOptions chromeOptions(boolean headless) {
@@ -60,6 +91,7 @@ public abstract class WebTestBase {
         if (headless) {
             options.addArguments("--headless=new");
         }
+        // Tắt màn hình chọn search engine mặc định của Chrome để tránh popup che khuất
         options.addArguments("--disable-search-engine-choice-screen");
         return options;
     }
@@ -67,7 +99,8 @@ public abstract class WebTestBase {
     /**
      * Thiết lập các tùy chọn khởi chạy cho trình duyệt Firefox.
      *
-     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa), false nếu có giao diện
+     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa),
+     *                 false nếu có giao diện
      * @return đối tượng {@link FirefoxOptions} đã được cấu hình
      */
     private FirefoxOptions firefoxOptions(boolean headless) {

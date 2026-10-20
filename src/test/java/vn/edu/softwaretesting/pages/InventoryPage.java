@@ -1,3 +1,10 @@
+/**
+ * @file InventoryPage.java
+ * @brief Page Object đại diện cho trang Danh sách sản phẩm (Inventory Page).
+ * Chứa các phương thức thêm/xóa sản phẩm, đọc số lượng badge giỏ hàng, sắp xếp sản phẩm.
+ * Phục vụ các test case: FR-02 (TC-CART-B1..B5, TC-CART-UC1..UC4) và FR-04 (TC-SORT-1..4).
+ */
+
 package vn.edu.softwaretesting.pages;
 
 import java.time.Duration;
@@ -12,10 +19,13 @@ import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 public final class InventoryPage {
+
+    // --- LOCATORS ---
     private static final By INVENTORY_CONTAINER = By.id("inventory_container");
     private static final By CART_LINK = By.cssSelector(".shopping_cart_link");
     private static final By CART_BADGE = By.cssSelector(".shopping_cart_badge");
-    private static final By SORT_DROPDOWN = By.cssSelector("select.product_sort_container, [data-test='product-sort-container']");
+    private static final By SORT_DROPDOWN = By
+            .cssSelector("select.product_sort_container, [data-test='product-sort-container']");
     private static final By ITEM_NAMES = By.cssSelector(".inventory_item_name");
     private static final By ITEM_PRICES = By.cssSelector(".inventory_item_price");
 
@@ -45,8 +55,12 @@ public final class InventoryPage {
 
     /**
      * Thêm một sản phẩm vào giỏ hàng dựa trên slug của sản phẩm.
+     * 
+     * Phục vụ các TC: TC-CART-B2, TC-CART-B3, TC-CART-B4, TC-CART-B5, TC-CART-UC1,
+     * TC-CHK-01.
      *
-     * @param itemSlug mã định danh (slug) của sản phẩm (ví dụ: "sauce-labs-backpack")
+     * @param itemSlug mã định danh (slug) của sản phẩm (ví dụ:
+     *                 "sauce-labs-backpack")
      * @return đối tượng {@link InventoryPage} hiện tại để hỗ trợ method chaining
      */
     public InventoryPage addToCart(String itemSlug) {
@@ -56,6 +70,8 @@ public final class InventoryPage {
 
     /**
      * Xóa một sản phẩm đã thêm khỏi giỏ hàng trực tiếp từ trang Inventory.
+     * 
+     * Phục vụ các TC: TC-CART-UC2 (Remove trên trang Inventory).
      *
      * @param itemSlug mã định danh (slug) của sản phẩm cần xóa
      * @return đối tượng {@link InventoryPage} hiện tại để hỗ trợ method chaining
@@ -66,8 +82,36 @@ public final class InventoryPage {
     }
 
     /**
-     * Chờ cho đến khi số lượng hiển thị trên badge giỏ hàng khớp với số lượng mong đợi.
+     * Kiểm tra xem nút "Add to cart" có đang hiển thị cho sản phẩm chỉ định không.
+     * 
+     * Phục vụ các TC: TC-CART-UC2 (sau khi remove, nút phải đổi lại thành Add to
+     * cart).
+     *
+     * @param itemSlug slug của sản phẩm cần kiểm tra
+     * @return true nếu nút Add to cart hiển thị, ngược lại false
+     */
+    public boolean isAddToCartButtonVisible(String itemSlug) {
+        return !driver.findElements(By.id("add-to-cart-" + itemSlug)).isEmpty();
+    }
+
+    /**
+     * Kiểm tra xem nút "Remove" có đang hiển thị cho sản phẩm chỉ định không.
+     * 
+     * Phục vụ các TC: TC-CART-B2 (sau khi add, nút phải đổi thành Remove).
+     *
+     * @param itemSlug slug của sản phẩm cần kiểm tra
+     * @return true nếu nút Remove hiển thị, ngược lại false
+     */
+    public boolean isRemoveButtonVisible(String itemSlug) {
+        return !driver.findElements(By.id("remove-" + itemSlug)).isEmpty();
+    }
+
+    /**
+     * Chờ cho đến khi số lượng hiển thị trên badge giỏ hàng khớp với số lượng mong
+     * đợi.
      * Nếu mong đợi 0, sẽ chờ cho đến khi badge biến mất khỏi giao diện.
+     * 
+     * Phục vụ các TC: TC-CART-B1, TC-CART-B2, TC-CART-B3, TC-CART-B4, TC-CART-B5.
      *
      * @param expectedCount số lượng mong đợi trên badge giỏ hàng
      * @return số lượng thực tế đọc được trên badge (hoặc 0 nếu badge biến mất)
@@ -97,6 +141,8 @@ public final class InventoryPage {
 
     /**
      * Nhấn vào biểu tượng giỏ hàng để chuyển hướng tới trang giỏ hàng (CartPage).
+     * 
+     * Phục vụ các TC: TC-CART-UC1, TC-CART-UC3, TC-CHK-01.
      *
      * @return đối tượng {@link CartPage} đại diện cho trang giỏ hàng
      */
@@ -106,7 +152,10 @@ public final class InventoryPage {
     }
 
     /**
-     * Chọn tiêu chí sắp xếp sản phẩm từ dropdown (ví dụ: "az", "za", "lohi", "hilo").
+     * Chọn tiêu chí sắp xếp sản phẩm từ dropdown (ví dụ: "az", "za", "lohi",
+     * "hilo").
+     * 
+     * Phục vụ các TC: TC-SORT-1, TC-SORT-2, TC-SORT-3, TC-SORT-4.
      *
      * @param optionValue giá trị value của tùy chọn sắp xếp cần chọn
      * @return đối tượng {@link InventoryPage} hiện tại để hỗ trợ method chaining
@@ -118,7 +167,10 @@ public final class InventoryPage {
     }
 
     /**
-     * Lấy danh sách tên của toàn bộ sản phẩm đang hiển thị trên trang theo thứ tự hiện tại.
+     * Lấy danh sách tên của toàn bộ sản phẩm đang hiển thị trên trang theo thứ tự
+     * hiện tại.
+     * 
+     * Phục vụ các TC: TC-SORT-1, TC-SORT-2 (kiểm tra thứ tự tên).
      *
      * @return danh sách chuỗi tên sản phẩm
      */
@@ -130,7 +182,10 @@ public final class InventoryPage {
     }
 
     /**
-     * Lấy danh sách đơn giá của toàn bộ sản phẩm đang hiển thị trên trang theo thứ tự hiện tại.
+     * Lấy danh sách đơn giá của toàn bộ sản phẩm đang hiển thị trên trang theo thứ
+     * tự hiện tại.
+     * 
+     * Phục vụ các TC: TC-SORT-3, TC-SORT-4 (kiểm tra thứ tự giá).
      *
      * @return danh sách giá sản phẩm dạng số thực {@link Double}
      */

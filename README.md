@@ -78,3 +78,89 @@ src/test/
 │       └── PerformanceTest.java   # Kiểm thử NFR-01 (Đo hiệu năng đăng nhập <= 3s & BUG-01)
 └── resources/
     └── login-data.csv             # Dữ liệu kiểm thử tham số hóa cho LoginTest
+```
+
+---
+
+## 3. Hướng dẫn chạy Test (Dành cho NV4 & NV5)
+
+### 3.1. Chạy toàn bộ bộ test (Mặc định)
+Lệnh này sẽ chạy **tất cả** các test case (bao gồm cả các test case bị lỗi known-bug). Kết quả sẽ có một số test FAIL đúng như dự kiến.
+```bash
+mvn clean test
+```
+*Lưu ý:* Mặc định chạy trên Chrome ở chế độ headless (không hiện giao diện).
+
+### 3.2. Chạy loại trừ các Test Case bị lỗi (Known Bugs)
+Theo quy trình NV4/NV5, các test case liên quan đến lỗi hệ thống đã biết (BUG-01, BUG-02, BUG-03) được gắn tag `@Tag("known-bug")`. Để chạy bộ test sạch (chỉ các test case PASS), sử dụng lệnh:
+```bash
+mvn test -DexcludedGroups=known-bug
+```
+Lệnh này sẽ bỏ qua các test case:
+* `TC-NFR-01` (BUG-01: Hiệu năng chậm)
+* `TC-CART-BUG02` (BUG-02: problem_user không xóa được sản phẩm)
+* `TC-CHK-BUG03` (BUG-03: problem_user lỗi Last Name)
+
+### 3.3. Chạy riêng các Test Case kiểm tra lỗi (Known Bugs)
+Để chạy riêng các test case thuộc nhóm known-bug (phục vụ việc thu thập bằng chứng lỗi):
+```bash
+mvn test -Dgroups=known-bug
+```
+
+### 3.4. Chạy cụ thể từng Test Class (Theo yêu cầu NV4)
+Bạn có thể chạy riêng từng nhóm chức năng bằng cách chỉ định tên class:
+
+* **Chạy kiểm thử Đăng nhập (FR-01):**
+  ```bash
+  mvn test -Dtest=LoginTest
+  ```
+* **Chạy kiểm thử Giỏ hàng (FR-02):**
+  ```bash
+  mvn test -Dtest=CartTest
+  ```
+* **Chạy kiểm thử Thanh toán (FR-03):**
+  ```bash
+  mvn test -Dtest=CheckoutTest
+  ```
+* **Chạy kiểm thử Sắp xếp (FR-04):**
+  ```bash
+  mvn test -Dtest=SortTest
+  ```
+* **Chạy kiểm thử Hiệu năng (NFR-01):**
+  ```bash
+  mvn test -Dtest=PerformanceTest
+  ```
+
+### 3.5. Chạy một Test Case cụ thể (Dựa vào Mã TC trong @DisplayName)
+Nếu bạn muốn chạy đúng một kịch bản (ví dụ: `TC-CHK-01`), hãy dùng cờ `-Dtest=TenClass#tenHam`:
+```bash
+# Chạy test case TC-CHK-01
+mvn test -Dtest=CheckoutTest#mainFlowShowsCorrectTotalAndFinishes
+```
+
+### 3.6. Chạy với giao diện (Không headless) để quan sát
+Nếu bạn cần quay video hoặc chụp ảnh bằng chứng (evidence) cho NV4:
+```bash
+mvn test -Dheadless=false -Dbrowser=chrome
+```
+Hoặc chạy trên Firefox:
+```bash
+mvn test -Dbrowser=firefox -Dheadless=false
+```
+
+---
+
+## 4. Xem báo cáo kết quả (Surefire Reports)
+Sau khi chạy lệnh `mvn test`, kết quả chi tiết (bao gồm cả các test case FAIL) sẽ được lưu tại:
+```text
+target/surefire-reports/
+```
+* Các file `.txt` và `.xml` chứa log chi tiết của từng test case.
+* Bạn có thể mở file `.txt` để xem lý do tại sao test case `known-bug` bị FAIL (ví dụ: thời gian tải trang vượt quá 3000ms, hoặc badge không biến mất) để làm bằng chứng báo cáo lỗi (BUG-01, BUG-02, BUG-03) cho NV4.
+
+---
+
+>[!NOTE]
+> * **Dữ liệu kiểm thử:** Tài khoản trong file `login-data.csv` là dữ liệu công khai của SauceDemo. Không sử dụng thông tin đăng nhập thật.
+> * **Known Bugs:** Các test case có tag `known-bug` **bắt buộc phải FAIL**. Nếu chúng PASS, có nghĩa là hệ thống đã được fix bug hoặc script của bạn > đang bị sai logic. Tuyệt đối không sửa Assertion để ép các test này PASS.
+> * **Evidence:** Để nộp bài NV4, hãy chụp ảnh màn hình kết quả chạy test (giao diện Selenium) và lưu vào thư mục `evidence/NV4/`.

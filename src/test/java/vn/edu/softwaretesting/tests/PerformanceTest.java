@@ -1,3 +1,9 @@
+/**
+ * @file PerformanceTest.java
+ * @brief Chứa test case kiểm thử phi chức năng về hiệu năng đăng nhập (NFR-01).
+ * Đo thời gian phản hồi của tài khoản performance_glitch_user.
+ */
+
 package vn.edu.softwaretesting.tests;
 
 import java.time.Duration;
@@ -14,8 +20,18 @@ import vn.edu.softwaretesting.pages.LoginPage;
 class PerformanceTest extends WebTestBase {
 
     /**
-     * Kiểm thử phi chức năng về hiệu năng đăng nhập (TC-NFR-01 / BUG-01):
-     * Đo thời gian phản hồi khi tài khoản performance_glitch_user đăng nhập và kiểm tra giới hạn 3000 ms.
+     * TC-NFR-01 (Known Bug).
+     * 
+     * Tiền điều kiện: Chưa đăng nhập, mạng ổn định.
+     * Quy trình:
+     * 1. Mở trang đăng nhập.
+     * 2. Bắt đầu bấm giờ (System.nanoTime()).
+     * 3. Đăng nhập bằng tài khoản performance_glitch_user.
+     * 4. Dừng bấm giờ khi trang inventory hiển thị.
+     * 5. Kiểm tra đăng nhập thành công và thời gian <= 3000 ms.
+     * 
+     * Lưu ý: Test này PHẢI FAIL vì performance_glitch_user bị làm chậm có chủ đích
+     * (> 3s).
      */
     @Test
     @Tag("known-bug")

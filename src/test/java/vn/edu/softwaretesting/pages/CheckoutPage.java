@@ -1,3 +1,10 @@
+/**
+ * @file CheckoutPage.java
+ * @brief Page Object đại diện cho quy trình Thanh toán (Checkout Page).
+ * Bao gồm 3 bước: Nhập thông tin (Step One), Tổng quan đơn hàng (Step Two) và Hoàn tất (Complete).
+ * Phục vụ các test case: FR-03 (TC-CHK-01..06, TC-TAX-B1..B3).
+ */
+
 package vn.edu.softwaretesting.pages;
 
 import java.time.Duration;
@@ -11,6 +18,8 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 public final class CheckoutPage {
+
+    // --- LOCATORS ---
     private static final By FIRST_NAME = By.id("first-name");
     private static final By LAST_NAME = By.id("last-name");
     private static final By POSTAL = By.id("postal-code");
@@ -38,7 +47,8 @@ public final class CheckoutPage {
     }
 
     /**
-     * Thực hiện thao tác click vào phần tử bằng JavaScript Executor sau khi phần tử xuất hiện trong DOM.
+     * Thực hiện thao tác click vào phần tử bằng JavaScript Executor sau khi phần tử
+     * xuất hiện trong DOM.
      *
      * @param locator định vị của phần tử cần click
      */
@@ -49,9 +59,11 @@ public final class CheckoutPage {
 
     /**
      * Điền thông tin cá nhân khách hàng ở bước Checkout đầu tiên (Step One).
+     * 
+     * Phục vụ các TC: TC-CHK-01, TC-CHK-02, TC-CHK-03, TC-CHK-04, TC-TAX-B1..B3.
      *
-     * @param first tên của khách hàng (First Name)
-     * @param last họ của khách hàng (Last Name)
+     * @param first  tên của khách hàng (First Name)
+     * @param last   họ của khách hàng (Last Name)
      * @param postal mã bưu chính (Postal/Zip Code)
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
@@ -77,7 +89,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Nhấn nút Continue và đọc thông báo lỗi xuất hiện khi thiếu dữ liệu hoặc thông tin không hợp lệ.
+     * Nhấn nút Continue và đọc thông báo lỗi xuất hiện khi thiếu dữ liệu hoặc thông
+     * tin không hợp lệ.
+     * 
+     * Phục vụ các TC: TC-CHK-02, TC-CHK-03, TC-CHK-04.
      *
      * @return chuỗi thông báo lỗi hiển thị trên giao diện
      */
@@ -87,7 +102,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Nhấn nút Continue để chuyển sang trang tóm tắt đơn hàng (Checkout: Overview) và chờ thông tin tổng tiền hiển thị.
+     * Nhấn nút Continue để chuyển sang trang tóm tắt đơn hàng (Checkout: Overview)
+     * và chờ thông tin tổng tiền hiển thị.
+     * 
+     * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
@@ -98,7 +116,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Nhấn nút Continue và đọc giá trị tổng tiền (Total) hiển thị ở trang tóm tắt đơn hàng.
+     * Nhấn nút Continue và đọc giá trị tổng tiền (Total) hiển thị ở trang tóm tắt
+     * đơn hàng.
+     * 
+     * Phục vụ TC: TC-CHK-BUG03 (dùng cho problem_user).
      *
      * @return chuỗi văn bản thể hiện tổng tiền (bao gồm cả thuế)
      */
@@ -108,7 +129,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Đọc giá trị tổng tiền sản phẩm (Item total / subtotal) từ trang tóm tắt đơn hàng.
+     * Đọc giá trị tổng tiền sản phẩm (Item total / subtotal) từ trang tóm tắt đơn
+     * hàng.
+     * 
+     * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return chuỗi văn bản tiền hàng (ví dụ: "Item total: $29.99")
      */
@@ -118,6 +142,8 @@ public final class CheckoutPage {
 
     /**
      * Đọc giá trị tiền thuế tính toán được (Tax) từ trang tóm tắt đơn hàng.
+     * 
+     * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return chuỗi văn bản tiền thuế (ví dụ: "Tax: $2.40")
      */
@@ -126,7 +152,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Đọc tổng số tiền phải thanh toán (Total = Item total + Tax) từ trang tóm tắt đơn hàng.
+     * Đọc tổng số tiền phải thanh toán (Total = Item total + Tax) từ trang tóm tắt
+     * đơn hàng.
+     * 
+     * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return chuỗi văn bản tổng tiền (ví dụ: "Total: $32.39")
      */
@@ -135,7 +164,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Nhấn nút Cancel ở bước Checkout Step One để hủy quá trình thanh toán và quay về giỏ hàng.
+     * Nhấn nút Cancel ở bước Checkout Step One để hủy quá trình thanh toán và quay
+     * về giỏ hàng.
+     * 
+     * Phục vụ TC: TC-CHK-05.
      *
      * @return đối tượng {@link CartPage} đại diện cho trang giỏ hàng
      */
@@ -146,6 +178,8 @@ public final class CheckoutPage {
 
     /**
      * Nhấn nút Finish để hoàn tất đơn đặt hàng và chờ thông báo hoàn tất hiển thị.
+     * 
+     * Phục vụ TC: TC-CHK-01.
      *
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
@@ -157,6 +191,8 @@ public final class CheckoutPage {
 
     /**
      * Đọc tiêu đề thông báo đơn hàng hoàn tất (Complete Header).
+     * 
+     * Phục vụ TC: TC-CHK-01.
      *
      * @return chuỗi tiêu đề thông báo (ví dụ: "Thank you for your order!")
      */
@@ -165,7 +201,10 @@ public final class CheckoutPage {
     }
 
     /**
-     * Kiểm tra URL hiện tại có phải là trang hoàn tất đơn hàng (checkout-complete.html) hay không.
+     * Kiểm tra URL hiện tại có phải là trang hoàn tất đơn hàng
+     * (checkout-complete.html) hay không.
+     * 
+     * Phục vụ TC: TC-CHK-01.
      *
      * @return true nếu URL chứa "checkout-complete.html", ngược lại false
      */
@@ -174,12 +213,22 @@ public final class CheckoutPage {
     }
 
     /**
-     * Lấy số lượng trên badge giỏ hàng sau khi đã hoàn tất đặt hàng (mong đợi là 0 khi giỏ đã reset).
+     * Lấy số lượng trên badge giỏ hàng sau khi đã hoàn tất đặt hàng (mong đợi là 0
+     * khi giỏ đã reset).
+     * 
+     * Phục vụ TC: TC-CHK-01.
      *
      * @return số lượng hiển thị trên badge, hoặc 0 nếu không còn badge
      */
     public int getBadgeCountAfterFinish() {
-        List<WebElement> badges = driver.findElements(CART_BADGE);
-        return badges.isEmpty() ? 0 : Integer.parseInt(badges.get(0).getText().trim());
+        // Chờ badge biến mất hoàn toàn (nếu có)
+        try {
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(CART_BADGE));
+            return 0;
+        } catch (Exception e) {
+            // Nếu badge vẫn còn, đọc số lượng
+            List<WebElement> badges = driver.findElements(CART_BADGE);
+            return badges.isEmpty() ? 0 : Integer.parseInt(badges.get(0).getText().trim());
+        }
     }
 }
