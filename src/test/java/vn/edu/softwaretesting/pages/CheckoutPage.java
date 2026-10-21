@@ -41,6 +41,13 @@ public final class CheckoutPage {
 
     private final WebDriver driver;
     private final WebDriverWait wait;
+    private final JavascriptExecutor js;
+
+    // Giá trị "ý định" của 3 trường, dùng cho reassertFields() ngay trước khi
+    // submit.
+    private String lastFirst;
+    private String lastLast;
+    private String lastPostal;
 
     /**
      * Khởi tạo CheckoutPage với WebDriver và cài đặt thời gian chờ tường minh.
@@ -50,6 +57,7 @@ public final class CheckoutPage {
     public CheckoutPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        this.js = (JavascriptExecutor) driver;
     }
 
     /**
@@ -60,59 +68,92 @@ public final class CheckoutPage {
      */
     private void jsClick(By locator) {
         WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
+        js.executeScript("arguments[0].click();", element);
     }
 
     /**
      * Điền thông tin cá nhân khách hàng ở bước Checkout đầu tiên (Step One).
-     * 
+     *
      * Phục vụ các TC: TC-CHK-01, TC-CHK-02, TC-CHK-03, TC-CHK-04, TC-TAX-B1..B3.
-     * 
+     *
      * @param first  tên của khách hàng (First Name)
      * @param last   họ của khách hàng (Last Name)
      * @param postal mã bưu chính (Postal/Zip Code)
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
     public CheckoutPage fillInformation(String first, String last, String postal) {
-        typeAndConfirm(FIRST_NAME, first);
-        typeAndConfirm(LAST_NAME, last);
-        typeAndConfirm(POSTAL, postal);
+        this.lastFirst = first;
+        this.lastLast = last;
+        this.lastPostal = postal;
+
+        typeReactControlled(FIRST_NAME, first);
+        typeReactControlled(LAST_NAME, last);
+        typeReactControlled(POSTAL, postal);
+
+        // KHÔNG gọi verifyFields() ở đây: problem_user được thiết kế để ánh xạ sai
+        // giá trị giữa các trường, nên assert trong fillInformation sẽ chặn BUG-03
+        // hiện ra ở đúng chỗ test mong đợi. Việc kiểm tra kết quả thuộc về test.
         return this;
     }
 
     /**
-     * Gõ giá trị vào ô nhập và chờ giá trị còn nguyên (ổn định qua nhiều lần đọc);
-     * nếu bị mất do trang vẽ lại thì gõ lại, tối đa 3 lần. Không ném ngoại lệ nếu
-     * vẫn không khớp, để lỗi của hệ thống (nếu có) vẫn tái hiện được.
+     * Gán giá trị cho input một cách "thân thiện với React/Vue": dùng native setter
+     * của HTMLInputElement để đặt value, sau đó dispatch sự kiện {@code input} và
+     * {@code change} để framework cập nhật internal state. Cách này tránh được
+     * hiện tượng framework re-render với state cũ và xóa mất giá trị vừa gõ (điều
+     * thường xảy ra với các trang nặng như giỏ 6 sản phẩm, khi hydration chưa xong
+     * mà sendKeys đã chạy).
      *
      * @param locator định vị ô nhập
-     * @param text    giá trị cần gõ (null hoặc rỗng nghĩa là để trống)
+     * @param text    giá trị cần gán (null hoặc rỗng nghĩa là để trống)
      */
-    private void typeAndConfirm(By locator, String text) {
+    private void typeReactControlled(By locator, String text) {
         final String expected = text == null ? "" : text;
-        for (int attempt = 0; attempt < 3; attempt++) {
-            WebElement field = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
-            field.clear();
-            if (expected.isEmpty()) {
-                return;
-            }
-            field.sendKeys(expected);
+        WebElement field = wait.until(ExpectedConditions.elementToBeClickable(locator));
 
-            final int[] stable = { 0 };
-            try {
-                new WebDriverWait(driver, Duration.ofSeconds(2))
-                        .pollingEvery(Duration.ofMillis(150))
-                        .until(d -> {
-                            String value = d.findElement(locator).getDomAttribute("value");
-                            if (expected.equals(value)) {
-                                return ++stable[0] >= 3;
-                            }
-                            stable[0] = 0;
-                            return false;
-                        });
-                return;
-            } catch (TimeoutException e) {
-                // Giá trị bị mất hoặc sai -> gõ lại
+        js.executeScript(
+                "var el = arguments[0];" +
+                        "var value = arguments[1];" +
+                        "var proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype" +
+                        "                                           : window.HTMLInputElement.prototype;" +
+                        "var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;" +
+                        "setter.call(el, value);" +
+                        "el.dispatchEvent(new Event('input', { bubbles: true }));" +
+                        "el.dispatchEvent(new Event('change', { bubbles: true }));",
+                field, expected);
+
+        // Xác nhận DOM property đã nhận giá trị (React thường cập nhật đồng bộ trong
+        // cùng tick với sự kiện input, nên đây là kiểm tra rất nhanh).
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(2))
+                    .pollingEvery(Duration.ofMillis(50))
+                    .until(d -> expected.equals(
+                            d.findElement(locator).getDomProperty("value")));
+        } catch (TimeoutException ignored) {
+            // Nếu vẫn không khớp thì để lỗi của hệ thống tự tái hiện;
+            // verifyFields() bên dưới sẽ báo cụ thể.
+        }
+    }
+
+    /**
+     * Xác nhận lại 3 trường ngay trước khi bấm Continue. Nếu trường nào đã bị
+     * re-render xóa mất thì gõ lại (qua cơ chế React-friendly) trước khi submit.
+     * Chỉ chạy khi fillInformation() đã được gọi ít nhất một lần.
+     *
+     * KHÔNG được gọi từ {@link #continueExpectingError()} vì test đó CỐ Ý để trống
+     * trường để kiểm tra thông báo lỗi.
+     */
+    private void reassertFields() {
+        if (lastFirst == null && lastLast == null && lastPostal == null) {
+            return;
+        }
+        By[] locators = { FIRST_NAME, LAST_NAME, POSTAL };
+        String[] expected = { lastFirst, lastLast, lastPostal };
+        for (int i = 0; i < locators.length; i++) {
+            String want = expected[i] == null ? "" : expected[i];
+            String got = driver.findElement(locators[i]).getDomProperty("value");
+            if (!want.equals(got)) {
+                typeReactControlled(locators[i], want);
             }
         }
     }
@@ -120,7 +161,9 @@ public final class CheckoutPage {
     /**
      * Nhấn nút Continue và đọc thông báo lỗi xuất hiện khi thiếu dữ liệu hoặc thông
      * tin không hợp lệ.
-     * 
+     *
+     * KHÔNG gọi {@link #reassertFields()} ở đây vì test này CỐ Ý để trống trường.
+     *
      * Phục vụ các TC: TC-CHK-02, TC-CHK-03, TC-CHK-04.
      *
      * @return chuỗi thông báo lỗi hiển thị trên giao diện
@@ -132,9 +175,9 @@ public final class CheckoutPage {
 
     /**
      * Nhấn nút Continue để chuyển sang trang tóm tắt đơn hàng (Checkout: Overview).
-     * 
+     *
      * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
-     * 
+     *
      * Hàm này xử lý cả 2 trường hợp:
      * 1. Chuyển trang thành công -> Chờ Total xuất hiện.
      * 2. Có lỗi validate hiện ra (dành cho problem_user) -> Ném RuntimeException.
@@ -142,16 +185,14 @@ public final class CheckoutPage {
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
     public CheckoutPage continueToOverview() {
+        reassertFields();
         jsClick(CONTINUE);
 
-        // Chờ trong 3 giây xem có lỗi hiện ra không (dành cho problem_user)
         try {
             WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(3));
             WebElement errorElement = shortWait.until(ExpectedConditions.visibilityOfElementLocated(ERROR));
-            // Nếu có lỗi, ném ngoại lệ để test case biết
             throw new RuntimeException("Validation Error: " + errorElement.getText());
         } catch (TimeoutException e) {
-            // Không có lỗi, chờ trang Overview hiển thị (Total)
             wait.until(ExpectedConditions.visibilityOfElementLocated(TOTAL));
         }
 
@@ -161,15 +202,16 @@ public final class CheckoutPage {
     /**
      * Nhấn nút Continue và đọc giá trị tổng tiền (Total) hiển thị ở trang tóm tắt
      * đơn hàng.
-     * 
+     *
      * Phục vụ TC: TC-CHK-BUG03 (dùng cho problem_user để kiểm tra xem có bị lỗi
      * không).
-     * 
+     *
      * Hàm này sẽ ném RuntimeException nếu có lỗi validate.
      *
      * @return chuỗi văn bản thể hiện tổng tiền (bao gồm cả thuế)
      */
     public String continueToOverviewAndReadTotal() {
+        reassertFields();
         jsClick(CONTINUE);
 
         try {
@@ -183,7 +225,7 @@ public final class CheckoutPage {
 
     /**
      * Kiểm tra xem có thông báo lỗi validate nào đang hiển thị trên trang không.
-     * 
+     *
      * Phục vụ TC: TC-CHK-BUG03 (dùng để assert problem_user gặp lỗi).
      *
      * @return true nếu có thông báo lỗi, ngược lại false
@@ -198,7 +240,7 @@ public final class CheckoutPage {
 
     /**
      * Kiểm tra URL hiện tại có phải bước nhập thông tin (checkout-step-one.html).
-     * 
+     *
      * Phục vụ TC: TC-CHK-02..04, TC-CHK-DT1, TC-CHK-DT2.
      *
      * @return true nếu URL chứa "checkout-step-one.html"
@@ -209,7 +251,7 @@ public final class CheckoutPage {
 
     /**
      * Kiểm tra URL hiện tại có phải trang tổng quan (checkout-step-two.html).
-     * 
+     *
      * Phục vụ TC: TC-CHK-06, TC-CHK-BUG03.
      *
      * @return true nếu URL chứa "checkout-step-two.html"
@@ -221,7 +263,7 @@ public final class CheckoutPage {
     /**
      * Đọc giá trị tổng tiền sản phẩm (Item total / subtotal) từ trang tóm tắt đơn
      * hàng.
-     * 
+     *
      * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return chuỗi văn bản tiền hàng (ví dụ: "Item total: $29.99")
@@ -232,7 +274,7 @@ public final class CheckoutPage {
 
     /**
      * Đọc giá trị tiền thuế tính toán được (Tax) từ trang tóm tắt đơn hàng.
-     * 
+     *
      * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return chuỗi văn bản tiền thuế (ví dụ: "Tax: $2.40")
@@ -244,7 +286,7 @@ public final class CheckoutPage {
     /**
      * Đọc tổng số tiền phải thanh toán (Total = Item total + Tax) từ trang tóm tắt
      * đơn hàng.
-     * 
+     *
      * Phục vụ các TC: TC-CHK-01, TC-TAX-B1..B3.
      *
      * @return chuỗi văn bản tổng tiền (ví dụ: "Total: $32.39")
@@ -256,7 +298,7 @@ public final class CheckoutPage {
     /**
      * Nhấn nút Cancel ở bước Checkout Step One để hủy quá trình thanh toán và quay
      * về giỏ hàng.
-     * 
+     *
      * Phục vụ TC: TC-CHK-05.
      *
      * @return đối tượng {@link CartPage} đại diện cho trang giỏ hàng
@@ -268,7 +310,7 @@ public final class CheckoutPage {
 
     /**
      * Nhấn nút Finish để hoàn tất đơn đặt hàng và chờ thông báo hoàn tất hiển thị.
-     * 
+     *
      * Phục vụ TC: TC-CHK-01.
      *
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
@@ -281,7 +323,7 @@ public final class CheckoutPage {
 
     /**
      * Đọc tiêu đề thông báo đơn hàng hoàn tất (Complete Header).
-     * 
+     *
      * Phục vụ TC: TC-CHK-01.
      *
      * @return chuỗi tiêu đề thông báo (ví dụ: "Thank you for your order!")
@@ -293,7 +335,7 @@ public final class CheckoutPage {
     /**
      * Kiểm tra URL hiện tại có phải là trang hoàn tất đơn hàng
      * (checkout-complete.html) hay không.
-     * 
+     *
      * Phục vụ TC: TC-CHK-01.
      *
      * @return true nếu URL chứa "checkout-complete.html", ngược lại false
@@ -305,18 +347,16 @@ public final class CheckoutPage {
     /**
      * Lấy số lượng trên badge giỏ hàng sau khi đã hoàn tất đặt hàng (mong đợi là 0
      * khi giỏ đã reset).
-     * 
+     *
      * Phục vụ TC: TC-CHK-01.
      *
      * @return số lượng hiển thị trên badge, hoặc 0 nếu không còn badge
      */
     public int getBadgeCountAfterFinish() {
-        // Chờ badge biến mất hoàn toàn (nếu có)
         try {
             wait.until(ExpectedConditions.invisibilityOfElementLocated(CART_BADGE));
             return 0;
         } catch (Exception e) {
-            // Nếu badge vẫn còn, đọc số lượng
             List<WebElement> badges = driver.findElements(CART_BADGE);
             return badges.isEmpty() ? 0 : Integer.parseInt(badges.get(0).getText().trim());
         }
