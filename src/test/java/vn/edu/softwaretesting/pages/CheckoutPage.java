@@ -2,7 +2,7 @@
  * @file CheckoutPage.java
  * @brief Page Object đại diện cho quy trình Thanh toán (Checkout Page).
  * Bao gồm 3 bước: Nhập thông tin (Step One), Tổng quan đơn hàng (Step Two) và Hoàn tất (Complete).
- * Phục vụ các test case: FR-03 (TC-CHK-01..06, TC-TAX-B1..B3).
+ * Phục vụ các test case: FR-03 (TC-CHK-01..06, TC-CHK-DT1..DT2, TC-CHK-BUG03, TC-TAX-B1..B3).
  */
 
 package vn.edu.softwaretesting.pages;
@@ -175,6 +175,28 @@ public final class CheckoutPage {
         } catch (NoSuchElementException e) {
             return false;
         }
+    }
+
+    /**
+     * Kiểm tra URL hiện tại có phải bước nhập thông tin (checkout-step-one.html).
+     * 
+     * Phục vụ TC: TC-CHK-02..04, TC-CHK-DT1, TC-CHK-DT2.
+     *
+     * @return true nếu URL chứa "checkout-step-one.html"
+     */
+    public boolean isAtInformationPage() {
+        return driver.getCurrentUrl().contains("checkout-step-one.html");
+    }
+
+    /**
+     * Kiểm tra URL hiện tại có phải trang tổng quan (checkout-step-two.html).
+     * 
+     * Phục vụ TC: TC-CHK-06, TC-CHK-BUG03.
+     *
+     * @return true nếu URL chứa "checkout-step-two.html"
+     */
+    public boolean isAtOverviewPage() {
+        return driver.getCurrentUrl().contains("checkout-step-two.html");
     }
 
     /**

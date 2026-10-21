@@ -140,6 +140,17 @@ public final class InventoryPage {
     }
 
     /**
+     * Kiểm tra URL hiện tại có phải trang danh sách sản phẩm (inventory.html).
+     * 
+     * Phục vụ TC: TC-CART-UC4.
+     *
+     * @return true nếu URL chứa "inventory.html"
+     */
+    public boolean isAtInventoryPage() {
+        return driver.getCurrentUrl().contains("inventory.html");
+    }
+
+    /**
      * Nhấn vào biểu tượng giỏ hàng để chuyển hướng tới trang giỏ hàng (CartPage).
      * 
      * Phục vụ các TC: TC-CART-UC1, TC-CART-UC3, TC-CHK-01.

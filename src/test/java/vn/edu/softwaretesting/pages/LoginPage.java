@@ -53,6 +53,18 @@ public final class LoginPage {
     }
 
     /**
+     * Xóa cookie/phiên hiện tại rồi mở lại trang đăng nhập (phiên sạch).
+     * 
+     * Phục vụ TC: TC-NFR-01 (mỗi lần đo cần một phiên chưa đăng nhập).
+     * 
+     * @return đối tượng {@link LoginPage} hiện tại để hỗ trợ method chaining
+     */
+    public LoginPage resetSession() {
+        driver.manage().deleteAllCookies();
+        return open();
+    }
+
+    /**
      * Thực hiện thao tác nhập tài khoản, mật khẩu và nhấn nút đăng nhập.
      * 
      * Phục vụ các TC: TC-LOGIN-EP1..EP8, TC-LOGIN-DT1..DT5.

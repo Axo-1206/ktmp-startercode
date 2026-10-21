@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -23,6 +24,8 @@ public final class CartPage {
     private static final By CART_CONTENTS = By.id("cart_contents_container");
     private static final By CART_ITEMS = By.cssSelector(".cart_item");
     private static final By ITEM_NAMES = By.cssSelector(".inventory_item_name");
+    private static final By ITEM_PRICES = By.cssSelector(".inventory_item_price");
+    private static final By CART_BADGE = By.cssSelector(".shopping_cart_badge");
     private static final By CHECKOUT_BUTTON = By.id("checkout");
     private static final By CONTINUE_SHOPPING_BUTTON = By.id("continue-shopping");
 
@@ -96,6 +99,36 @@ public final class CartPage {
                 .stream()
                 .map(WebElement::getText)
                 .toList();
+    }
+
+    /**
+     * Lấy danh sách đơn giá (dạng chuỗi, ví dụ "$29.99") của các sản phẩm trong
+     * giỏ.
+     * 
+     * Phục vụ TC: TC-CART-UC1.
+     *
+     * @return danh sách giá dạng {@link List} của String
+     */
+    public List<String> getItemPrices() {
+        return driver.findElements(ITEM_PRICES)
+                .stream()
+                .map(WebElement::getText)
+                .toList();
+    }
+
+    /**
+     * Chờ badge giỏ hàng biến mất (giỏ rỗng).
+     * 
+     * Phục vụ TC: TC-CART-UC3.
+     *
+     * @return true nếu badge biến mất trong thời gian chờ, ngược lại false
+     */
+    public boolean isBadgeHidden() {
+        try {
+            return wait.until(ExpectedConditions.invisibilityOfElementLocated(CART_BADGE));
+        } catch (TimeoutException e) {
+            return false;
+        }
     }
 
     /**

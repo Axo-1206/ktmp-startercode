@@ -100,25 +100,27 @@ class CartTest extends WebTestBase {
     /**
      * TC-CART-UC1.
      * 
-     * Tiền điều kiện: Đã đăng nhập standard_user, giỏ rỗng.
+     * Tiền điều kiện: Đã đăng nhập standard_user, giỏ rỗng, đang ở inventory.html.
      * Quy trình:
-     * 1. Thêm Sauce Labs Backpack vào giỏ.
-     * 2. Mở trang giỏ hàng.
-     * 3. Kiểm tra số lượng item là 1 và tên sản phẩm có trong giỏ.
-     * 4. Nhấn Continue Shopping.
-     * 5. Kiểm tra badge giữ nguyên là 1.
+     * 1. Nhấn Add to cart ở Sauce Labs Backpack.
+     * 2. Kiểm tra nút đổi thành Remove và badge = 1.
+     * 3. Nhấn biểu tượng giỏ hàng.
+     * 4. Kiểm tra URL cart.html, giỏ có đúng 1 dòng: Sauce Labs Backpack, $29.99.
      */
     @Test
-    @DisplayName("TC-CART-UC1: Add item, view cart, then Continue Shopping returns to inventory with badge=1")
-    void testContinueShoppingFromCart() {
+    @DisplayName("TC-CART-UC1: Add item from Inventory -> button becomes Remove, badge=1, cart.html lists Backpack $29.99")
+    void testAddItemAndViewCart() {
         InventoryPage inventoryPage = loginAsStandardUser();
-        CartPage cartPage = inventoryPage.addToCart("sauce-labs-backpack").openCart();
+        inventoryPage.addToCart("sauce-labs-backpack");
 
-        assertEquals(1, cartPage.getItemCount());
-        assertTrue(cartPage.getItemNames().contains("Sauce Labs Backpack"));
-
-        inventoryPage = cartPage.continueShopping();
         assertEquals(1, inventoryPage.waitForBadgeCount(1));
+        assertTrue(inventoryPage.isRemoveButtonVisible("sauce-labs-backpack"), "Nút phải đổi thành Remove sau khi Add");
+
+        CartPage cartPage = inventoryPage.openCart();
+        assertTrue(cartPage.isAtCartPage(), "URL phải là cart.html");
+        assertEquals(1, cartPage.getItemCount());
+        assertEquals(List.of("Sauce Labs Backpack"), cartPage.getItemNames());
+        assertEquals(List.of("$29.99"), cartPage.getItemPrices());
     }
 
     /**
@@ -146,53 +148,51 @@ class CartTest extends WebTestBase {
     /**
      * TC-CART-UC3.
      * 
-     * Tiền điều kiện: Đã đăng nhập standard_user, giỏ rỗng.
+     * Tiền điều kiện: Đã đăng nhập standard_user, giỏ có Sauce Labs Backpack, đang
+     * ở cart.html.
      * Quy trình:
-     * 1. Thêm 2 sản phẩm (Backpack, Bike Light).
-     * 2. Mở trang giỏ hàng, kiểm tra số lượng là 2.
-     * 3. Xóa 1 sản phẩm (Bike Light), kiểm tra số lượng còn 1.
-     * 4. Xóa sản phẩm còn lại (Backpack), kiểm tra giỏ hàng trống (số lượng = 0).
+     * 1. Nhấn Remove ở Sauce Labs Backpack trong trang giỏ hàng.
+     * 2. Kiểm tra danh sách giỏ trống và badge biến mất.
      */
     @Test
-    @DisplayName("TC-CART-UC3: Add 2 items, open Cart, remove items updates count to 1 then 0")
+    @DisplayName("TC-CART-UC3: Remove the only item inside cart.html -> cart list empty and badge disappears")
     void testRemoveItemInsideCartPage() {
         InventoryPage inventoryPage = loginAsStandardUser();
-        CartPage cartPage = inventoryPage
-                .addToCart("sauce-labs-backpack")
-                .addToCart("sauce-labs-bike-light")
-                .openCart();
-
-        // Bước 1: Kiểm tra có 2 sản phẩm
-        assertEquals(2, cartPage.getItemCount());
-
-        // Bước 2: Xóa 1 sản phẩm, còn 1
-        cartPage.removeItem("sauce-labs-bike-light");
+        CartPage cartPage = inventoryPage.addToCart("sauce-labs-backpack").openCart();
         assertEquals(1, cartPage.getItemCount());
 
-        // Bước 3: Xóa sản phẩm cuối cùng, giỏ trống
         cartPage.removeItem("sauce-labs-backpack");
-        assertTrue(cartPage.isCartEmpty(), "Giỏ hàng phải trống sau khi xóa hết sản phẩm");
+
+        assertTrue(cartPage.isCartEmpty(), "Giỏ hàng phải trống sau khi xóa");
+        assertTrue(cartPage.isBadgeHidden(), "Badge phải biến mất khi giỏ trống");
     }
 
     /**
      * TC-CART-UC4.
      * 
-     * Tiền điều kiện: Đã đăng nhập standard_user, giỏ rỗng.
+     * Tiền điều kiện: Đã đăng nhập standard_user, giỏ có 2 sản phẩm (N = 2), đang ở
+     * cart.html.
      * Quy trình:
-     * 1. Mở giỏ hàng rỗng.
-     * 2. Kiểm tra số lượng item là 0.
-     * 3. Nhấn Continue Shopping.
-     * 4. Kiểm tra badge vẫn là 0.
+     * 1. Ghi nhận badge (N) và tên các sản phẩm trong giỏ.
+     * 2. Nhấn Continue Shopping.
+     * 3. Kiểm tra URL inventory.html và badge vẫn = N.
+     * 4. Mở lại giỏ hàng, kiểm tra vẫn đúng các sản phẩm đã thêm.
      */
     @Test
-    @DisplayName("TC-CART-UC4: Open empty cart shows 0 items and Continue Shopping works")
-    void testOpenEmptyCartAndContinueShopping() {
+    @DisplayName("TC-CART-UC4: Continue Shopping keeps the cart (URL inventory.html, badge=N, same items on return)")
+    void testContinueShoppingKeepsCart() {
         InventoryPage inventoryPage = loginAsStandardUser();
-        CartPage cartPage = inventoryPage.openCart();
+        inventoryPage.addToCart("sauce-labs-backpack").addToCart("sauce-labs-bike-light");
+        int badgeBefore = inventoryPage.waitForBadgeCount(2);
 
-        assertEquals(0, cartPage.getItemCount());
+        CartPage cartPage = inventoryPage.openCart();
+        List<String> namesBefore = cartPage.getItemNames();
+
         inventoryPage = cartPage.continueShopping();
-        assertEquals(0, inventoryPage.getBadgeCount());
+        assertTrue(inventoryPage.isAtInventoryPage(), "URL phải là inventory.html");
+        assertEquals(badgeBefore, inventoryPage.waitForBadgeCount(badgeBefore));
+
+        assertEquals(namesBefore, inventoryPage.openCart().getItemNames());
     }
 
     /**
