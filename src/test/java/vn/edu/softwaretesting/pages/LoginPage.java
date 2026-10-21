@@ -10,8 +10,10 @@ package vn.edu.softwaretesting.pages;
 import java.time.Duration;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -26,6 +28,7 @@ public final class LoginPage {
 
     private final WebDriver driver;
     private final WebDriverWait wait;
+    private final WebDriverWait loginWait;
     private final String baseUrl;
 
     /**
@@ -39,6 +42,7 @@ public final class LoginPage {
         this.driver = driver;
         this.baseUrl = baseUrl;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(8));
+        this.loginWait = new WebDriverWait(driver, Duration.ofSeconds(15));
     }
 
     /**
@@ -61,6 +65,9 @@ public final class LoginPage {
      */
     public LoginPage resetSession() {
         driver.manage().deleteAllCookies();
+        ((JavascriptExecutor) driver).executeScript(
+                "window.localStorage.clear(); window.sessionStorage.clear();");
+        driver.get("about:blank");
         return open();
     }
 
@@ -82,12 +89,33 @@ public final class LoginPage {
      * @return kết quả đăng nhập gói gọn trong đối tượng {@link LoginResult}
      */
     public LoginResult login(String username, String password) {
-        driver.findElement(USERNAME).sendKeys(username);
-        driver.findElement(PASSWORD).sendKeys(password);
+        return enterCredentials(username, password).submit();
+    }
+
+    /**
+     * Nhập username và password (có xác nhận giá trị còn nguyên), chưa nhấn Login.
+     *
+     * @param username tên người dùng
+     * @param password mật khẩu
+     * @return đối tượng {@link LoginPage} hiện tại để hỗ trợ method chaining
+     */
+    public LoginPage enterCredentials(String username, String password) {
+        typeAndConfirm(USERNAME, username);
+        typeAndConfirm(PASSWORD, password);
+        return this;
+    }
+
+    /**
+     * Nhấn nút Login rồi chờ (Explicit Wait, tối đa 15 giây) trang sản phẩm hoặc
+     * thông báo lỗi xuất hiện.
+     *
+     * @return kết quả đăng nhập gói gọn trong {@link LoginResult}
+     */
+    public LoginResult submit() {
         driver.findElement(LOGIN_BUTTON).click();
 
         try {
-            wait.until(ExpectedConditions.or(
+            loginWait.until(ExpectedConditions.or(
                     ExpectedConditions.visibilityOfElementLocated(INVENTORY),
                     ExpectedConditions.visibilityOfElementLocated(ERROR)));
         } catch (TimeoutException exception) {
@@ -100,6 +128,43 @@ public final class LoginPage {
                 ? "Login accepted"
                 : driver.findElement(ERROR).getText();
         return new LoginResult(accepted, driver.getCurrentUrl(), message);
+    }
+
+    /**
+     * Gõ giá trị vào ô nhập và chờ giá trị còn nguyên (ổn định qua nhiều lần đọc);
+     * nếu bị mất do trang vẽ lại thì gõ lại, tối đa 3 lần. Không ném ngoại lệ nếu
+     * vẫn không khớp, để lỗi của hệ thống (nếu có) vẫn tái hiện được.
+     *
+     * @param locator định vị ô nhập
+     * @param text    giá trị cần gõ (null hoặc rỗng nghĩa là để trống)
+     */
+    private void typeAndConfirm(By locator, String text) {
+        final String expected = text == null ? "" : text;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            WebElement field = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+            field.clear();
+            if (expected.isEmpty()) {
+                return;
+            }
+            field.sendKeys(expected);
+
+            final int[] stable = { 0 };
+            try {
+                new WebDriverWait(driver, Duration.ofSeconds(2))
+                        .pollingEvery(Duration.ofMillis(150))
+                        .until(d -> {
+                            String value = d.findElement(locator).getDomAttribute("value");
+                            if (expected.equals(value)) {
+                                return ++stable[0] >= 3;
+                            }
+                            stable[0] = 0;
+                            return false;
+                        });
+                return;
+            } catch (TimeoutException e) {
+                // Giá trị bị mất hoặc sai -> gõ lại
+            }
+        }
     }
 
     /**

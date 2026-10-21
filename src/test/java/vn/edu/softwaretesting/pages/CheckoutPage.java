@@ -74,28 +74,47 @@ public final class CheckoutPage {
      * @return đối tượng {@link CheckoutPage} hiện tại để tiếp tục chuỗi thao tác
      */
     public CheckoutPage fillInformation(String first, String last, String postal) {
-        // 1. Điền First Name
-        WebElement firstInput = wait.until(ExpectedConditions.visibilityOfElementLocated(FIRST_NAME));
-        firstInput.clear();
-        if (first != null && !first.isEmpty()) {
-            firstInput.sendKeys(first);
-        }
-
-        // 2. Điền Last Name
-        WebElement lastInput = driver.findElement(LAST_NAME);
-        lastInput.clear();
-        if (last != null && !last.isEmpty()) {
-            lastInput.sendKeys(last);
-        }
-
-        // 3. Điền Postal Code
-        WebElement postalInput = driver.findElement(POSTAL);
-        postalInput.clear();
-        if (postal != null && !postal.isEmpty()) {
-            postalInput.sendKeys(postal);
-        }
-
+        typeAndConfirm(FIRST_NAME, first);
+        typeAndConfirm(LAST_NAME, last);
+        typeAndConfirm(POSTAL, postal);
         return this;
+    }
+
+    /**
+     * Gõ giá trị vào ô nhập và chờ giá trị còn nguyên (ổn định qua nhiều lần đọc);
+     * nếu bị mất do trang vẽ lại thì gõ lại, tối đa 3 lần. Không ném ngoại lệ nếu
+     * vẫn không khớp, để lỗi của hệ thống (nếu có) vẫn tái hiện được.
+     *
+     * @param locator định vị ô nhập
+     * @param text    giá trị cần gõ (null hoặc rỗng nghĩa là để trống)
+     */
+    private void typeAndConfirm(By locator, String text) {
+        final String expected = text == null ? "" : text;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            WebElement field = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+            field.clear();
+            if (expected.isEmpty()) {
+                return;
+            }
+            field.sendKeys(expected);
+
+            final int[] stable = { 0 };
+            try {
+                new WebDriverWait(driver, Duration.ofSeconds(2))
+                        .pollingEvery(Duration.ofMillis(150))
+                        .until(d -> {
+                            String value = d.findElement(locator).getDomAttribute("value");
+                            if (expected.equals(value)) {
+                                return ++stable[0] >= 3;
+                            }
+                            stable[0] = 0;
+                            return false;
+                        });
+                return;
+            } catch (TimeoutException e) {
+                // Giá trị bị mất hoặc sai -> gõ lại
+            }
+        }
     }
 
     /**

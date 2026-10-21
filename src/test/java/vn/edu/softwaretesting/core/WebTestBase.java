@@ -38,6 +38,21 @@ public abstract class WebTestBase {
      */
     @BeforeEach
     void openBrowser() {
+        startBrowser();
+    }
+
+    /**
+     * Đóng trình duyệt hiện tại và mở một phiên trình duyệt mới hoàn toàn sạch.
+     * Dùng cho test cần nhiều phiên độc lập trong cùng một test (ví dụ NFR-01).
+     */
+    protected void restartBrowser() {
+        if (driver != null) {
+            driver.quit();
+        }
+        startBrowser();
+    }
+
+    private void startBrowser() {
         // Đọc cấu hình từ Maven (mặc định: baseUrl=https://www.saucedemo.com,
         // browser=chrome, headless=true)
         baseUrl = System.getProperty("baseUrl", "https://www.saucedemo.com");

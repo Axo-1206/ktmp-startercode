@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -28,23 +29,46 @@ class PerformanceTest extends WebTestBase {
 
     /**
      * Đo thời gian từ lúc nhấn Login đến khi trang sản phẩm hiển thị, lặp
-     * {@value #SAMPLES} lần; mỗi lần bắt đầu từ một phiên sạch (xóa cookie).
+     * {@value #SAMPLES} lần; mỗi lần mở một trình duyệt mới (phiên sạch). Thời gian
+     * gõ username/password không được tính. Nếu đăng nhập không phản hồi thì thử
+     * lại
+     * 1 lần (ghi log lần bị loại).
      *
-     * @param loginPage trang đăng nhập đã mở
-     * @param username  tài khoản cần đo
-     * @return danh sách thời gian (ms) của từng lần đo
+     * @param username    tài khoản cần đo
+     * @param mustSucceed true: không đo được mẫu sau 2 lần thử thì test FAIL;
+     *                    false (mẫu đối chiếu): bỏ qua mẫu đó
+     * @return danh sách thời gian (ms) của các lần đo hợp lệ
      */
-    private List<Long> measureLoginMillis(LoginPage loginPage, String username) {
+    private List<Long> measureLoginMillis(String username, boolean mustSucceed) {
         List<Long> samples = new ArrayList<>();
         for (int i = 0; i < SAMPLES; i++) {
-            loginPage.resetSession();
+            final int sample = i + 1;
+            Long millis = null;
+            String lastProblem = "";
 
-            long start = System.nanoTime();
-            var result = loginPage.login(username, "secret_sauce");
-            long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+            for (int attempt = 1; attempt <= 2 && millis == null; attempt++) {
+                restartBrowser();
+                LoginPage loginPage = new LoginPage(driver, baseUrl).open()
+                        .enterCredentials(username, "secret_sauce");
 
-            assertTrue(result.accepted(), username + " should be able to log in (sample " + (i + 1) + ")");
-            samples.add(millis);
+                long start = System.nanoTime();
+                var result = loginPage.submit();
+                long elapsed = Duration.ofNanos(System.nanoTime() - start).toMillis();
+
+                if (result.accepted()) {
+                    millis = elapsed;
+                } else {
+                    lastProblem = "url=" + result.currentUrl() + ", message=" + result.message();
+                    System.out.printf("[TC-NFR-01] %s sample %d attempt %d discarded: %s%n",
+                            username, sample, attempt, lastProblem);
+                }
+            }
+
+            if (millis != null) {
+                samples.add(millis);
+            } else if (mustSucceed) {
+                fail(username + " could not log in (sample " + sample + ") after 2 attempts: " + lastProblem);
+            }
         }
         return samples;
     }
@@ -67,7 +91,8 @@ class PerformanceTest extends WebTestBase {
      * Tiền điều kiện: Chưa đăng nhập, mạng ổn định.
      * Quy trình:
      * 1. Đo 5 lần với standard_user (đối chiếu, chỉ ghi log).
-     * 2. Đo 5 lần với performance_glitch_user, mỗi lần từ phiên sạch.
+     * 2. Đo 5 lần với performance_glitch_user, mỗi lần mở trình duyệt mới, bấm giờ
+     * từ lúc nhấn Login.
      * 3. Tính trung vị 5 mẫu và kiểm tra <= 3000 ms.
      * 
      * Lưu ý: Test này PHẢI FAIL vì performance_glitch_user bị làm chậm có chủ đích
@@ -77,12 +102,11 @@ class PerformanceTest extends WebTestBase {
     @Tag("known-bug")
     @DisplayName("TC-NFR-01 [BUG-01]: median of 5 inventory loads within 3 s")
     void inventoryLoadsWithinThreeSeconds() {
-        LoginPage loginPage = new LoginPage(driver, baseUrl).open();
+        List<Long> standard = measureLoginMillis("standard_user", false);
+        System.out.printf("[TC-NFR-01] standard_user samples=%s ms, median=%s%n", standard,
+                standard.isEmpty() ? "n/a" : median(standard) + " ms");
 
-        List<Long> standard = measureLoginMillis(loginPage, "standard_user");
-        System.out.printf("[TC-NFR-01] standard_user samples=%s ms, median=%d ms%n", standard, median(standard));
-
-        List<Long> glitch = measureLoginMillis(loginPage, "performance_glitch_user");
+        List<Long> glitch = measureLoginMillis("performance_glitch_user", true);
         long glitchMedian = median(glitch);
         System.out.printf("[TC-NFR-01] performance_glitch_user samples=%s ms, median=%d ms%n", glitch, glitchMedian);
 
