@@ -14,16 +14,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import vn.edu.softwaretesting.core.ScreenshotWatcher;
 import vn.edu.softwaretesting.core.WebTestBase;
 import vn.edu.softwaretesting.pages.CartPage;
 import vn.edu.softwaretesting.pages.InventoryPage;
 import vn.edu.softwaretesting.pages.LoginPage;
 
 @DisplayName("FR-02: Cart BVA & Use Cases")
+@ExtendWith(ScreenshotWatcher.class)
 class CartTest extends WebTestBase {
 
     private static final List<String> ALL_PRODUCTS = List.of(

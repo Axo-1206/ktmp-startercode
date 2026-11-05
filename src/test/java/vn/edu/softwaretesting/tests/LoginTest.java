@@ -13,15 +13,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 
+import vn.edu.softwaretesting.core.ScreenshotWatcher;
 import vn.edu.softwaretesting.core.WebTestBase;
 import vn.edu.softwaretesting.pages.LoginPage;
 import vn.edu.softwaretesting.pages.LoginPage.LoginResult;
 
 @Tag("web")
 @DisplayName("FR-LOGIN: Authentication")
+@ExtendWith(ScreenshotWatcher.class)
 class LoginTest extends WebTestBase {
 
         private LoginPage loginPage;

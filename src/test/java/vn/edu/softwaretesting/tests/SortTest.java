@@ -13,14 +13,17 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import vn.edu.softwaretesting.core.ScreenshotWatcher;
 import vn.edu.softwaretesting.core.WebTestBase;
 import vn.edu.softwaretesting.pages.InventoryPage;
 import vn.edu.softwaretesting.pages.LoginPage;
 
 @DisplayName("FR-04: Product Sorting")
+@ExtendWith(ScreenshotWatcher.class)
 class SortTest extends WebTestBase {
 
     private InventoryPage inventoryPage;
