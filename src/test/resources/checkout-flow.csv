@@ -1,0 +1,16 @@
+page,locator,action,value
+LOGIN,id:user-name,type,standard_user
+LOGIN,id:password,type,secret_sauce
+LOGIN,id:login-button,click,
+INVENTORY,id:add-to-cart-sauce-labs-backpack,click,
+INVENTORY,css:.shopping_cart_link,click,
+CART,id:checkout,click,
+CHECKOUT_STEP_ONE,id:first-name,type,An
+CHECKOUT_STEP_ONE,id:last-name,type,Nguyen
+CHECKOUT_STEP_ONE,id:postal-code,type,700000
+CHECKOUT_STEP_ONE,id:continue,click,
+CHECKOUT_STEP_TWO,css:.summary_subtotal_label,assertContains,Item total: $29.99
+CHECKOUT_STEP_TWO,css:.summary_tax_label,assertContains,Tax: $2.40
+CHECKOUT_STEP_TWO,css:.summary_total_label,assertContains,Total: $32.39
+CHECKOUT_STEP_TWO,id:finish,click,
+COMPLETE,css:.complete-header,assertContains,Thank you for your order!
