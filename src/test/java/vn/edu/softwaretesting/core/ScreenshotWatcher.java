@@ -1,6 +1,6 @@
 /**
  * @file ScreenshotWatcher.java
- * @brief JUnit 5 Extension (TestWatcher) tự động chụp ảnh màn hình khi một
+ * @brief JUnit 5 Extension tự động chụp ảnh màn hình khi một
  *        test case FAIL hoặc xảy ra lỗi không mong đợi (ERROR).
  *
  * Cách sử dụng — thêm annotation vào class test:
@@ -10,7 +10,7 @@
  * </pre>
  *
  * Ảnh được lưu vào thư mục:
- *   target/screenshots/<TestClassName>/<testMethodName>_<timestamp>.png
+ *   target/screenshots/<TestClassName>/<testMethodName>_<timestamp>_<STATUS>.png
  *
  * Extension lấy {@link org.openqa.selenium.WebDriver} qua field {@code driver}
  * của {@link WebTestBase} (kế thừa protected). Nếu test class không kế thừa
@@ -20,7 +20,6 @@
 
 package vn.edu.softwaretesting.core;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,13 +28,14 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 
-public class ScreenshotWatcher implements TestWatcher {
+public class ScreenshotWatcher implements AfterTestExecutionCallback, TestWatcher {
 
     /** Thư mục gốc lưu ảnh (tương đối với working directory khi chạy Maven). */
     private static final String SCREENSHOTS_DIR = "target/screenshots";
@@ -43,25 +43,47 @@ public class ScreenshotWatcher implements TestWatcher {
     private static final DateTimeFormatter TS_FMT =
             DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
+    private static final ExtensionContext.Namespace NAMESPACE =
+            ExtensionContext.Namespace.create(ScreenshotWatcher.class);
+
     // -----------------------------------------------------------------------
-    // TestWatcher callbacks
+    // Execution & Watcher callbacks
     // -----------------------------------------------------------------------
 
     /**
+     * Chạy NGAY SAU KHI @Test kết thúc nhưng TRƯỚC KHI @AfterEach đóng trình duyệt.
+     * Đây là thời điểm WebDriver vẫn còn sống để chụp ảnh nếu test bị FAIL.
+     */
+    @Override
+    public void afterTestExecution(ExtensionContext context) {
+        if (context.getExecutionException().isPresent()) {
+            takeScreenshot(context, "FAILED");
+            context.getStore(NAMESPACE).put("screenshot_captured", true);
+        }
+    }
+
+    /**
      * Được gọi khi test FAIL (assertion không thỏa mãn).
-     * Chụp ảnh màn hình và lưu vào thư mục target/screenshots.
+     * Chỉ chụp nếu chưa được chụp ở afterTestExecution.
      */
     @Override
     public void testFailed(ExtensionContext context, Throwable cause) {
+        Boolean captured = context.getStore(NAMESPACE).get("screenshot_captured", Boolean.class);
+        if (Boolean.TRUE.equals(captured)) {
+            return;
+        }
         takeScreenshot(context, "FAILED");
     }
 
     /**
      * Được gọi khi test ném ngoại lệ không phải AssertionError (lỗi runtime).
-     * Cùng chụp ảnh để phục vụ debug.
      */
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
+        Boolean captured = context.getStore(NAMESPACE).get("screenshot_captured", Boolean.class);
+        if (Boolean.TRUE.equals(captured)) {
+            return;
+        }
         takeScreenshot(context, "ABORTED");
     }
 
@@ -101,7 +123,7 @@ public class ScreenshotWatcher implements TestWatcher {
             Files.write(file, png);
 
             System.out.printf("[ScreenshotWatcher] %s → %s%n", status, file.toAbsolutePath());
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("[ScreenshotWatcher] Không thể lưu ảnh: " + e.getMessage());
         }
     }
