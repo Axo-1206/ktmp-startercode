@@ -7,7 +7,7 @@ thay Page Object, dữ liệu và test theo đúng hệ thống đã đăng ký.
 
 - JDK 17 trở lên
 - Maven 3.9 trở lên
-- Chrome hoặc Firefox
+- Chrome, Microsoft Edge hoặc Firefox
 
 Selenium Manager sẽ tự tìm hoặc tải driver tương thích trong lần chạy đầu.
 
@@ -32,6 +32,15 @@ mvn test \
   -Dheadless=true
 ```
 
+Chạy trên Microsoft Edge (hiện giao diện trình duyệt):
+
+```bash
+mvn test -Dbrowser=edge -Dheadless=false
+```
+
+Để chạy Edge ở chế độ headless, đổi thành `-Dheadless=true`. Selenium Manager sẽ
+tự tìm hoặc tải Edge WebDriver tương thích.
+
 Kết quả XML và log được tạo trong `target/surefire-reports/`.
 
 ## Những điểm mẫu đang minh họa
@@ -55,7 +64,7 @@ Dự án kiểm thử tự động hệ thống [SauceDemo](https://www.saucedem
 * **Java:** JDK 17+ (Khuyến nghị JDK 21)
 * **Maven:** 3.8+
 * **Thư viện kiểm thử:** JUnit 5.11, Selenium WebDriver 4.27, Maven Surefire 3.5.2
-* **Trình duyệt đã kiểm thử:** Google Chrome (version 155.0.8059.82) trên Windows 11
+* **Trình duyệt đã kiểm thử:** Google Chrome (version 155.0.8059.82) trên Windows 11; Chrome, Edge và Firefox được hỗ trợ để chạy test.
 
 ---
 
@@ -146,6 +155,11 @@ mvn test -Dheadless=false -Dbrowser=chrome
 Hoặc chạy trên Firefox:
 ```bash
 mvn test -Dbrowser=firefox -Dheadless=false
+```
+
+Hoặc chạy trên Microsoft Edge:
+```bash
+mvn test -Dbrowser=edge -Dheadless=false
 ```
 
 ---

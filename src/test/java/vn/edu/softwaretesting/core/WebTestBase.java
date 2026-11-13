@@ -2,7 +2,7 @@
  * @file WebTestBase.java
  * @brief Lớp cơ sở (Base Class) cho tất cả các bài test Selenium.
  * Chịu trách nhiệm khởi tạo và giải phóng WebDriver trước/sau mỗi test case.
- * Hỗ trợ chạy đa trình duyệt (Chrome/Firefox) và chế độ headless thông qua system properties.
+ * Hỗ trợ chạy đa trình duyệt (Chrome/Edge/Firefox) và chế độ headless thông qua system properties.
  */
 
 package vn.edu.softwaretesting.core;
@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 
@@ -29,7 +31,7 @@ public abstract class WebTestBase {
      * Quy trình:
      * 1. Đọc cấu hình từ System Properties (baseUrl, browser, headless) do Maven
      * Surefire truyền vào.
-     * 2. Khởi tạo trình duyệt tương ứng (Chrome hoặc Firefox).
+     * 2. Khởi tạo trình duyệt tương ứng (Chrome, Edge hoặc Firefox).
      * 3. Cấu hình thời gian chờ load trang tối đa (pageLoadTimeout) là 20 giây.
      * 4. Thiết lập kích thước cửa sổ trình duyệt cố định (1440x900) để đảm bảo giao
      * diện hiển thị nhất quán.
@@ -38,6 +40,10 @@ public abstract class WebTestBase {
      */
     @BeforeEach
     void openBrowser() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
         startBrowser();
     }
 
@@ -48,6 +54,7 @@ public abstract class WebTestBase {
     protected void restartBrowser() {
         if (driver != null) {
             driver.quit();
+            driver = null;
         }
         startBrowser();
     }
@@ -64,6 +71,7 @@ public abstract class WebTestBase {
         // Khởi tạo WebDriver dựa trên cấu hình browser
         driver = switch (browser) {
             case "chrome" -> new ChromeDriver(chromeOptions(headless));
+            case "edge" -> new EdgeDriver(edgeOptions(headless));
             case "firefox" -> new FirefoxDriver(firefoxOptions(headless));
             default -> throw new IllegalArgumentException(
                     "Unsupported browser: " + browser);
@@ -89,9 +97,8 @@ public abstract class WebTestBase {
      */
     @AfterEach
     void closeBrowser() {
-        if (driver != null) {
-            driver.quit();
-        }
+        // Keep the live WebDriver available for ScreenshotWatcher so it can
+        // capture the failing page before the next test begins and closes it.
     }
 
     /**
@@ -108,6 +115,21 @@ public abstract class WebTestBase {
         }
         // Tắt màn hình chọn search engine mặc định của Chrome để tránh popup che khuất
         options.addArguments("--disable-search-engine-choice-screen");
+        return options;
+    }
+
+    /**
+     * Thiết lập các tùy chọn khởi chạy cho trình duyệt Microsoft Edge.
+     *
+     * @param headless true nếu chạy ở chế độ headless (không giao diện đồ họa),
+     *                 false nếu có giao diện
+     * @return đối tượng {@link EdgeOptions} đã được cấu hình
+     */
+    private EdgeOptions edgeOptions(boolean headless) {
+        EdgeOptions options = new EdgeOptions();
+        if (headless) {
+            options.addArguments("--headless=new");
+        }
         return options;
     }
 
